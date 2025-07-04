@@ -1,0 +1,26 @@
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+
+# === Env files ===
+.env
+
+# === Logs ===
+*.log
+
+# === Selenium/WebDriver ===
+chromedriver
+geckodriver
+
+# === IDE folders ===
+.vscode/
+.idea/
+
+# === Test Artifacts ===
+reports/
+screenshots/
+
+# === OS files ===
+.DS_Store
+Thumbs.db
