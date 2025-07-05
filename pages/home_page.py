@@ -4,7 +4,7 @@ from locators.home_page_selectors import HomePageSelectors
 from utils.helper import (
     sleep_for,
     highlight_by_element,
-    type_and_submit,
+    type_only,
     highlight_multiple_elements,
 )
 
@@ -14,66 +14,61 @@ class HomePage:
         # Store the Selenium WebDriver instance
         self.driver = driver
 
-    def load(self, url):
-        # Navigate to the given URL
-        self.driver.get(url)
-        sleep_for(2, "loading page")
-
-    def search_news(self, query):
-        # Type the query but do NOT press Enter
-        type_and_submit(
-            driver=self.driver,
-            xpath=HomePageSelectors.SEARCH_INPUT,
-            value=query,
-            press_enter=False,
-        )
-
-        # Optional: Highlight the search button for visibility
-        if hasattr(HomePageSelectors, "SEARCH_BUTTON"):
-            highlight_by_element(self.driver, HomePageSelectors.SEARCH_BUTTON)
-
-            # Press the search button (click)
-            try:
-                search_button = self.driver.find_element(
-                    By.XPATH, HomePageSelectors.SEARCH_BUTTON
-                )
-                search_button.click()
-            except Exception as e:
-                print(f"❌ Failed to click search button: {e}")
-
-        # Wait for search results to load
-        sleep_for(3, "waiting for search results")
-
-    def get_top_3_articles(self):
+    def run(self, url, query):
         try:
+            # Step 1: Load the website
+            self.driver.get(url)
+            sleep_for(2, "loading page")
+
+            # Step 2: Highlight and type search query
+            highlight_by_element(self.driver, HomePageSelectors.SEARCH_INPUT)
+            sleep_for(2, "highlighted search input before typing")
+            type_only(
+                driver=self.driver,
+                xpath=HomePageSelectors.SEARCH_INPUT,
+                value=query,
+            )
+            sleep_for(2, "typed search query without submitting")
+
+            # Step 3: Highlight and click search button (if available)
+            if hasattr(HomePageSelectors, "SEARCH_BUTTON"):
+                highlight_by_element(
+                    self.driver, HomePageSelectors.SEARCH_BUTTON)
+                try:
+                    search_button = self.driver.find_element(
+                        By.XPATH, HomePageSelectors.SEARCH_BUTTON
+                    )
+                    sleep_for(3, "waiting before clicking search button")
+                    search_button.click()
+                except Exception as e:
+                    print(f"❌ Failed to click search button: {e}")
+
+            sleep_for(3, "waiting for search results")
+
+            # Step 4: Retrieve top 3 article titles
             xpaths = [
                 HomePageSelectors.FIRST_ARTICLE,
                 HomePageSelectors.SECOND_ARTICLE,
                 HomePageSelectors.THIRD_ARTICLE,
             ]
-
-            # 🔍 Highlight all top 3 articles
             highlight_multiple_elements(self.driver, xpaths)
+            articles = [
+                self.driver.find_element(By.XPATH, xpath).text for xpath in xpaths
+            ]
 
-            # 📰 Retrieve and return their text
-            return [self.driver.find_element(By.XPATH, xpath).text for xpath in xpaths]
+            # Step 5: Retrieve image source
+            image_src = None
+            try:
+                image = self.driver.find_element(
+                    By.XPATH, HomePageSelectors.IMAGE_1)
+                sleep_for(1, "highlighted image before getting src")
+                image_src = image.get_attribute("src")
+            except Exception as e:
+                print(f"❌ Error retrieving image: {e}")
 
-        except Exception as e:
-            print(f"❌ Error getting top 3 articles: {e}")
-            return []
-
-    def get_the_image(self):
-        try:
-            # Locate the image
-            image = self.driver.find_element(By.XPATH, HomePageSelectors.IMAGE_1)
-
-            # Optional wait for visibility or screenshot
-            sleep_for(1, "highlighted image before getting src")
-
-            # Return the image source URL
-            return image.get_attribute("src")
+            # Final: Return all gathered data
+            return {"articles": articles, "image": image_src}
 
         except Exception as e:
-            # Log error if image retrieval fails
-            print(f"Error retrieving image: {e}")
-            return None
+            print(f"❌ Unexpected error in run(): {e}")
+            return {"articles": [], "image": None}
