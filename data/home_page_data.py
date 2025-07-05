@@ -1,0 +1,3 @@
+class HomePageData:
+    TECHONOLOGY = "technology"
+    
